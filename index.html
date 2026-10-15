@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17131f">
+  <meta name="description" content="Solana AI Trader — lokal simulering av kryptohandel.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <title>Solana AI Trader</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-mark" aria-hidden="true">✦</div>
+    <div class="brand-copy">
+      <h1>Solana AI Trader</h1>
+      <p>Mobil dashboard · Solana</p>
+    </div>
+    <span class="mode-badge"><span class="pulse"></span> SIMULERING</span>
+  </header>
+
+  <main>
+    <section class="hero card">
+      <div class="hero-copy">
+        <p class="eyebrow">PAPER TRADING</p>
+        <h2>Öva på strategin.<br><span>Utan riktiga pengar.</span></h2>
+        <p class="muted">Testa simulerade affärer och följ resultatet innan du överväger livehandel.</p>
+      </div>
+      <div class="orb" aria-hidden="true"><div class="orb-core">◎</div></div>
+    </section>
+
+    <section class="wallet-row">
+      <div>
+        <p class="section-label">PLÅNBOK</p>
+        <h2 id="walletState">Inte ansluten</h2>
+        <p class="muted small" id="walletHint">Simuleringen fungerar utan Phantom.</p>
+      </div>
+      <button class="button button-secondary" id="connectWallet">Anslut Phantom</button>
+    </section>
+    <p class="notice" id="walletNotice" role="status">Phantom-anslutning är valfri i den här testversionen. Inga transaktioner skickas.</p>
+
+    <section class="stats-grid" aria-label="Kontosammanfattning">
+      <article class="stat card">
+        <p class="stat-label">Simulerat saldo</p>
+        <p class="stat-value" id="balance">$1,000.00</p>
+        <p class="stat-foot">Startkapital: $1,000</p>
+      </article>
+      <article class="stat card">
+        <p class="stat-label">Total avkastning</p>
+        <p class="stat-value" id="returnValue">$0.00</p>
+        <p class="stat-foot" id="returnPct">0.00%</p>
+      </article>
+      <article class="stat card">
+        <p class="stat-label">Vinstaffärer</p>
+        <p class="stat-value" id="winRate">0%</p>
+        <p class="stat-foot" id="tradeCount">0 avslutade affärer</p>
+      </article>
+      <article class="stat card">
+        <p class="stat-label">Öppen position</p>
+        <p class="stat-value" id="positionValue">Ingen</p>
+        <p class="stat-foot" id="positionHint">Ingen position just nu</p>
+      </article>
+    </section>
+
+    <section class="card bot-card">
+      <div class="section-head">
+        <div>
+          <p class="section-label">STRATEGIMOTOR</p>
+          <h2>Handelsbot</h2>
+        </div>
+        <span class="status-pill" id="botStatus"><span class="status-dot"></span> Stoppad</span>
+      </div>
+      <div class="strategy-row">
+        <div class="strategy-icon">↗</div>
+        <div class="strategy-copy">
+          <strong>Momentum demo</strong>
+          <p>Simulerade SOL-köp och -sälj med prisrörelser som skapas lokalt.</p>
+        </div>
+      </div>
+      <div class="risk-grid">
+        <div><span>Position per affär</span><strong>5% av saldo</strong></div>
+        <div><span>Simulerad avgift</span><strong>0,2%</strong></div>
+        <div><span>Stop-loss demo</span><strong>−3%</strong></div>
+      </div>
+      <div class="action-row">
+        <button class="button button-primary" id="startBot">▶ Starta bot</button>
+        <button class="button button-danger" id="stopBot" disabled>■ Stoppa</button>
+      </div>
+      <p class="muted small" id="botMessage" aria-live="polite">Tryck Starta bot för att börja simulera marknadsrörelser.</p>
+      <p class="disclaimer">Detta är en pedagogisk simulering, inte en vinstprognos. Priserna är syntetiska och representerar inte aktuell SOL-marknad.</p>
+    </section>
+
+    <section class="card chart-card">
+      <div class="section-head">
+        <div>
+          <p class="section-label">SIMULERAD MARKNAD</p>
+          <h2>SOL/USD</h2>
+        </div>
+        <div class="price-block"><strong id="marketPrice">$150.00</strong><span id="priceChange">+0.00%</span></div>
+      </div>
+      <div class="chart-wrap">
+        <svg id="priceChart" viewBox="0 0 340 132" role="img" aria-label="Graf över simulerat SOL-pris">
+          <defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#9b78ff" stop-opacity=".32"/><stop offset="100%" stop-color="#9b78ff" stop-opacity="0"/></linearGradient></defs>
+          <path id="chartArea" d="" fill="url(#chartFill)"></path>
+          <path id="chartLine" d="" fill="none" stroke="#ad91ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </div>
+      <div class="chart-foot"><span>Lokalt genererad prisserie</span><span id="marketTicks">0 uppdateringar</span></div>
+    </section>
+
+    <section class="card trades-card">
+      <div class="section-head">
+        <div><p class="section-label">AKTIVITET</p><h2>Senaste affärer</h2></div>
+        <button class="text-button" id="resetBot">Återställ demo</button>
+      </div>
+      <div id="tradeList" class="trade-list">
+        <div class="empty-state"><div class="empty-icon">⌁</div><strong>Inga affärer ännu</strong><p>Starta boten för att se simulerade köp och sälj här.</p></div>
+      </div>
+    </section>
+
+    <footer>
+      <p>Solana AI Trader · Demo 0.1</p>
+      <p>Inga riktiga köp, sälj eller blockchain-transaktioner utförs.</p>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
