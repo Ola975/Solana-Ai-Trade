@@ -1,20 +1,17 @@
 <!doctype html>
-<html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10121b"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><title>Solana AI Trader V3</title></head>
-<body><header><div><small>SOLANA · PAPER TRADING</small><h1>Solana AI Trader <b>V3</b></h1></div><span id="status">Inte startad</span></header><main>
+<html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10121b"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><title>Solana AI Trader V4 Autopilot</title></head>
+<body><header><div><small>SOLANA · PAPER TRADING</small><h1>Solana AI Trader <b>V4</b></h1></div><span id="status">Inte startad</span></header><main>
 <aside><b>Säkert testläge:</b> Endast pappershandel. Inga riktiga köp eller försäljningar och ingen Phantom-anslutning. Data hämtas från DexScreener. Sidan måste vara öppen för att bevaka. Kryptohandel är mycket riskfylld; vinst kan inte garanteras.</aside>
 <section class="stats"><article>Simulerat saldo<strong id="balance">$150.00</strong></article><article>Realiserat resultat<strong id="pnl">$0.00</strong></article><article>Öppna positioner<strong id="count">0</strong></article><article>Tokens hittade<strong id="n">0</strong></article></section>
 <section><h2>Fyra agentsteg</h2><div class="agents">
 <article><b>1 · Scanner</b><span id="agentScanner">Väntar på skanning</span></article><article><b>2 · Analyst</b><span id="agentAnalyst">Väntar på kandidater</span></article><article><b>3 · Risk Manager</b><span id="agentRisk">Kontrollerar risk före köp</span></article><article><b>4 · Executor</b><span id="agentExecutor">Endast pappersorder</span></article>
 </div><p class="muted">Detta är fyra regelbaserade steg, inte fyra fristående AI-modeller. Poängen bygger på likviditet, volym och momentum. Ägarfördelning, mint authority och freeze authority verifieras inte – de är okända, inte godkända.</p></section>
-<section><h2>Inställningar</h2><div class="controls">
-<label>Skanningsintervall<select id="tempo"><option value="15000">15 sekunder</option><option value="30000" selected>30 sekunder</option><option value="60000">60 sekunder</option></select></label>
-<label>Minsta likviditet<select id="liq"><option value="10000">$10 000</option><option value="25000">$25 000</option><option value="40000" selected>$40 000</option></select></label>
-<label>Minsta Analyst-poäng<select id="minScore"><option value="60">60 / 100</option><option value="70" selected>70 / 100</option><option value="80">80 / 100</option></select></label>
-</div><p><label><input type="checkbox" id="auto" checked> Automatisk pappershandel</label></p>
-<p class="risk">Testregler: insats 8% av saldo (max $50) · max 5 positioner · stop-loss −6% · trailing exit −12% från topp · max dagsförlust 5% · paus efter 3 förlustaffärer · uppskattad avgift 1%.</p>
-<button id="start">Starta bevakning</button> <button id="stop" class="secondary" disabled>Stoppa</button> <button id="scan" class="secondary">Skanna nu</button> <button id="reset" class="secondary">Återställ demo</button><p id="message">Tryck på Skanna nu för att börja.</p></section>
+<section><h2>Autopilot</h2>
+<p class="muted">Tryck på Starta autopilot. Botten skannar automatiskt var 30:e sekund, väljer kandidater och sköter simulerade köp och försäljningar. Du behöver inte ändra några inställningar.</p>
+<p class="risk">Säkerhetsreglerna är fasta: högst 5 öppna positioner, högst 8% av saldot per köp (max $50), stop-loss −6%, daglig förlustgräns 5% och paus efter 3 förlustaffärer. Endast pappershandel.</p>
+<button id="start">Starta autopilot</button> <button id="stop" class="secondary" disabled>Stoppa autopilot</button> <button id="scan" class="secondary">Skanna nu</button> <button id="reset" class="secondary">Återställ demo</button><p id="message">Starta autopiloten för att börja.</p></section>
 <section><h2>Nya / bevakade tokens</h2><p class="muted">Urval från senaste tokenprofiler och tillgängliga Solana-par – inte alla nyskapade tokens.</p><div class="tablewrap"><table><thead><tr><th>Token</th><th>Pris</th><th>Likviditet</th><th>Volym 24h</th><th>24h</th><th>Poäng</th><th>Åtgärd</th></tr></thead><tbody id="tokens"><tr><td colspan="7">Ingen data ännu.</td></tr></tbody></table></div></section>
 <section><h2>Öppna positioner</h2><div class="tablewrap"><table><thead><tr><th>Token</th><th>Köp</th><th>Nu</th><th>Resultat</th><th></th></tr></thead><tbody id="positions"><tr><td colspan="5">Inga öppna positioner.</td></tr></tbody></table></div></section>
 <section><h2>Handelslogg</h2><div id="log">Inga affärer ännu.</div></section>
-<footer>V3 · Endast simulering · Prisdata kan vara fördröjd/ofullständig · Ingen riktig handel eller vinstgaranti.</footer>
+<footer>V4 · Autopilot · Endast simulering · Prisdata kan vara fördröjd/ofullständig · Ingen riktig handel eller vinstgaranti.</footer>
 </main><script src="app.js"></script></body></html>
