@@ -10,7 +10,9 @@ let running=false,timer=null,balance=START_BALANCE,realized=0,buyCount=0,sellCou
 let dayKey=new Date().toLocaleDateString('en-CA'),dayStartEquity=START_BALANCE,dailyPaused=false;
 const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(Number(n)||0);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function message(s){$('message').textContent=s}
+function message(s){const el=$('message');if(el)el.textContent=s}
+window.addEventListener('error',e=>{const el=$('message');if(el)el.textContent='JavaScript-fel: '+(e.message||'okänt fel')+'. Ladda om sidan.';const st=$('status');if(st)st.textContent='Fel';});
+window.addEventListener('unhandledrejection',e=>{const el=$('message');if(el)el.textContent='Fel vid datahämtning: '+(e.reason?.message||String(e.reason));});
 function agent(id,s){const el=$('agent'+id);if(el)el.textContent=s}
 function log(a,b='',cls=''){logs.unshift({a,b,cls,t:new Date().toLocaleTimeString()});logs=logs.slice(0,60);$('log').innerHTML=logs.map(x=>'<div class="logrow"><span class="'+x.cls+'">'+esc(x.a)+'</span><small class="sub">'+esc(x.b)+' · '+x.t+'</small></div>').join('')}
 function currentEquity(){return balance+positions.reduce((sum,p)=>{const t=tokens.find(x=>x.address===p.address),invested=Number(p.invested??p.size),quantity=Number(p.quantity??(invested/p.entry));return sum+quantity*(t?.price||p.lastPrice||p.entry)},0)}
@@ -74,7 +76,7 @@ function render(){
  $('positions').innerHTML=positions.length?positions.map(p=>{const t=tokens.find(x=>x.address===p.address),price=t?.price||p.lastPrice||p.entry,invested=Number(p.invested??p.size),quantity=Number(p.quantity??(invested/p.entry)),pnl=quantity*price-invested;return '<tr><td>'+esc(p.symbol)+'</td><td>'+money(p.entry)+'</td><td>'+money(price)+'</td><td>'+money(invested)+'</td><td class="'+(pnl>=0?'positive':'negative')+'">'+money(pnl)+'</td><td><button class="tablebtn secondary" data-sell="'+esc(p.address)+'">Sälj</button></td></tr>'}).join(''):'<tr><td colspan="5">Inga öppna positioner.</td></tr>';
 }
 async function scan(){
- if(busy)return;busy=true;$('scan').disabled=true;
+ if(busy)return;busy=true;const scanButton=$('scan');if(scanButton)scanButton.disabled=true;
  try{
   rollDay();agent('Scanner','Hämtar senaste tokenprofiler');agent('Analyst','Analyserar hype, momentum och flöde');agent('Risk','Kontrollerar risk');message('Skannar Solana-tokenprofiler och marknadsaktivitet…');
   const data=await get(PROFILE_API),profiles=(Array.isArray(data)?data:[]).filter(x=>x.chainId==='solana'&&x.tokenAddress),unique=[...new Map(profiles.map(x=>[x.tokenAddress,x])).values()].slice(0,30);
@@ -92,13 +94,13 @@ async function scan(){
   agent('Scanner','Analyserade '+tokens.length+' tokenpar');agent('Analyst',eligible+' kandidater klarar nuvarande filter');managePositions();if(running)autoTrade();agent('Risk',dailyPaused?'Pausad av riskregler':'Riskkontroll aktiv');agent('Executor','Paper trading · '+positions.length+' öppna positioner');
   message('Klart: '+tokens.length+' tokenpar · '+eligible+' möjliga kandidater. Hype mäts via marknadsdata, inte sociala medier. Säkerhetsdata om ägare och authorities är ännu inte verifierad.');render();
  }catch(e){message('Datafel: '+e.message+'. API kan vara begränsat eller nere.');log('Skanningsfel',e.message,'negative');agent('Scanner','Fel vid datahämtning')}
- finally{busy=false;$('scan').disabled=false}
+ finally{busy=false;if(scanButton)scanButton.disabled=false}
 }
-$('start').onclick=()=>{if(running)return;running=true;$('status').textContent='Bevakar';$('start').disabled=true;$('stop').disabled=false;scan();timer=setInterval(scan,SCAN_MS)};
+$('start').onclick=()=>{if(running)return;running=true;$('status').textContent='Startar…';$('start').disabled=true;$('stop').disabled=false;message('Autopiloten startar. Första skanningen pågår…');if(timer)clearInterval(timer);timer=setInterval(()=>{if(running)scan()},SCAN_MS);scan().then(()=>{if(running)$('status').textContent='Bevakar'}).catch(e=>{if(running)$('status').textContent='Bevakar · datafel';message('Autopiloten är igång men skanningen misslyckades: '+e.message)})};
 $('stop').onclick=()=>{running=false;clearInterval(timer);timer=null;$('status').textContent='Stoppad';$('start').disabled=false;$('stop').disabled=true;message('Bevakningen stoppad. Papperspositionerna ligger kvar.')};
 $('scan').onclick=scan;
 $('reset').onclick=()=>{running=false;clearInterval(timer);timer=null;balance=START_BALANCE;realized=0;buyCount=0;sellCount=0;positions=[];tokens=[];seen.clear();logs=[];consecutiveLosses=0;dailyPaused=false;dayStartEquity=START_BALANCE;$('status').textContent='Inte startad';$('start').disabled=false;$('stop').disabled=true;agent('Scanner','Väntar på skanning');agent('Analyst','Väntar på kandidater');agent('Risk','Riskkontroll aktiv');agent('Executor','Endast pappersorder');log('Demo återställd','Saldo '+money(START_BALANCE));render();message('Demot återställt.')};
 $('tokens').onclick=e=>{const b=e.target.closest('[data-buy]');if(b)buy(tokens.find(t=>t.address===b.dataset.buy))};
 $('positions').onclick=e=>{const b=e.target.closest('[data-sell]');if(b)sell(b.dataset.sell)};
-loadState();render();log('System redo','V5 · lokalt sparande · endast pappershandel');
+loadState();render();log('System redo','V6 · startskydd · lokalt sparande · endast pappershandel');$('status').textContent='Redo';
 })();
