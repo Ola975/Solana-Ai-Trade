@@ -5,7 +5,7 @@ const PROFILE_API = 'https://api.dexscreener.com/token-profiles/latest/v1';
 const TOKEN_API = 'https://api.dexscreener.com/latest/dex/tokens/';
 const START_BALANCE = 150, MAX_POSITIONS = 5, MAX_TRADE_USD = 50;
 const STOP_LOSS = 0.06, TRAIL_FROM_PEAK = 0.12, MAX_DAILY_LOSS = 0.05;
-const FEE_RATE = 0.01, MIN_VOLUME = 5000, MIN_SCORE = 70;
+const FEE_RATE = 0.01, MIN_VOLUME = 5000, MIN_LIQUIDITY = 25000, MIN_SCORE = 70, SCAN_MS = 30000;
 let running=false, timer=null, balance=START_BALANCE, realized=0, positions=[];
 let tokens=[], seen=new Set(), logs=[], busy=false, consecutiveLosses=0;
 let dayKey=new Date().toLocaleDateString('en-CA'), dayStartEquity=START_BALANCE, dailyPaused=false;
@@ -40,8 +40,8 @@ function riskCheck(t,manual=false){
  if(positions.length>=MAX_POSITIONS)return 'Max antal positioner nått';
  if(positions.some(p=>p.address===t.address))return 'Token har redan en öppen position';
  if(!t.price||!Number.isFinite(t.price))return 'Ogiltigt pris';
- if(t.liquidity<Number($('liq').value)||t.volume<MIN_VOLUME)return 'Likviditet eller volym under gränsen';
- if(t.score<Number($('minScore').value||MIN_SCORE))return 'Analyst-poäng under gränsen';
+ if(t.liquidity<MIN_LIQUIDITY||t.volume<MIN_VOLUME)return 'Likviditet eller volym under gränsen';
+ if(t.score<MIN_SCORE)return 'Analyst-poäng under gränsen';
  if(balance<5)return 'För litet saldo';
  return '';
 }
@@ -76,7 +76,7 @@ function autoTrade(){
  rollDay();
  if(realized<=-dayStartEquity*MAX_DAILY_LOSS){dailyPaused=true;agent('Risk','Pausad · daglig förlustgräns');return}
  if(consecutiveLosses>=3){dailyPaused=true;agent('Risk','Pausad · tre förluster i rad');return}
- for(const t of tokens){if(positions.length>=MAX_POSITIONS)break;if(t.score>=Number($('minScore').value||MIN_SCORE))buy(t,true)}
+ for(const t of tokens){if(positions.length>=MAX_POSITIONS)break;if(t.score>=MIN_SCORE)buy(t,true)}
 }
 async function scan(){
  if(busy)return;busy=true;$('scan').disabled=true;
@@ -95,17 +95,17 @@ async function scan(){
   tokens=out.filter(x=>x.status==='fulfilled'&&x.value).map(x=>x.value).sort((a,b)=>b.score-a.score);
   for(const t of tokens)if(!seen.has(t.address)){seen.add(t.address);log('Scanner · upptäckt '+t.symbol,t.name+' · likviditet '+money(t.liquidity)+' · score '+t.score+'/100')}
   agent('Scanner','Hittade '+tokens.length+' Solana-tokenpar');
-  agent('Analyst',tokens.filter(t=>t.score>=Number($('minScore').value||MIN_SCORE)).length+' kandidater klarar poänggränsen');
+  agent('Analyst',tokens.filter(t=>t.score>=MIN_SCORE&&t.liquidity>=MIN_LIQUIDITY&&t.volume>=MIN_VOLUME).length+' kandidater klarar poänggränsen');
   managePositions();
-  if(running&&$('auto').checked)autoTrade();
+  if(running)autoTrade();
   agent('Risk',dailyPaused?'Pausad av riskregler':'Riskkontroll aktiv');
   agent('Executor','Endast simulerade order · '+positions.length+' öppna');
-  message('Skanningen klar: '+tokens.length+' tokenpar. Poängen är en enkel regelmodell, inte AI eller säkerhetsgranskning.');
+  const qualified=tokens.filter(t=>t.score>=MIN_SCORE&&t.liquidity>=MIN_LIQUIDITY&&t.volume>=MIN_VOLUME).length;\n  message('Skanningen klar: '+tokens.length+' tokenpar analyserade · '+qualified+' klarar köpkraven. Autopiloten avvaktar om ingen kandidat klarar riskkontrollen.');
   render();
  }catch(e){message('Kunde inte hämta data: '+e.message+'. API kan vara begränsat eller tillfälligt nere.');log('Skanningsfel',e.message,'negative');agent('Scanner','Fel vid datahämtning')}
  finally{busy=false;$('scan').disabled=false}
 }
-$('start').onclick=()=>{if(running)return;running=true;$('status').textContent='Bevakar';$('start').disabled=true;$('stop').disabled=false;scan();timer=setInterval(scan,Number($('tempo').value))};
+$('start').onclick=()=>{if(running)return;running=true;$('status').textContent='Bevakar';$('start').disabled=true;$('stop').disabled=false;scan();timer=setInterval(scan,SCAN_MS)};
 $('stop').onclick=()=>{running=false;clearInterval(timer);timer=null;$('status').textContent='Stoppad';$('start').disabled=false;$('stop').disabled=true;message('Bevakningen stoppad. Papperspositionerna ligger kvar.')};
 $('scan').onclick=scan;
 $('tempo').onchange=()=>{if(running){clearInterval(timer);timer=setInterval(scan,Number($('tempo').value))}};
