@@ -13,7 +13,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function message(s){$('message').textContent=s}
 function agent(id,s){const el=$('agent'+id);if(el)el.textContent=s}
 function log(a,b='',cls=''){logs.unshift({a,b,cls,t:new Date().toLocaleTimeString()});logs=logs.slice(0,60);$('log').innerHTML=logs.map(x=>'<div class="logrow"><span class="'+x.cls+'">'+esc(x.a)+'</span><small class="sub">'+esc(x.b)+' · '+x.t+'</small></div>').join('')}
-function currentEquity(){return balance+positions.reduce((sum,p)=>{const t=tokens.find(x=>x.address===p.address);return sum+p.size*((t?.price||p.lastPrice||p.entry)/p.entry)},0)}
+function currentEquity(){return balance+positions.reduce((sum,p)=>{const t=tokens.find(x=>x.address===p.address),invested=Number(p.invested??p.size),quantity=Number(p.quantity??(invested/p.entry));return sum+quantity*(t?.price||p.lastPrice||p.entry)},0)}
 function saveState(){try{localStorage.setItem(STATE_KEY,JSON.stringify({balance,realized,positions,seen:[...seen].slice(-500),logs:logs.slice(0,60),buyCount,sellCount,consecutiveLosses,dayKey,dayStartEquity,dailyPaused}))}catch(e){log('Lagring','Kunde inte spara lokalt: '+e.message,'negative')}}
 function loadState(){try{const x=JSON.parse(localStorage.getItem(STATE_KEY)||'null');if(!x)return;if(Number.isFinite(x.balance))balance=x.balance;if(Number.isFinite(x.realized))realized=x.realized;if(Array.isArray(x.positions))positions=x.positions.filter(p=>p&&p.address&&Number.isFinite(p.entry)&&p.entry>0&&Number.isFinite(p.size));if(Array.isArray(x.seen))seen=new Set(x.seen);if(Array.isArray(x.logs))logs=x.logs.slice(0,60);buyCount=Number.isFinite(x.buyCount)?x.buyCount:logs.filter(z=>String(z.a).startsWith('Paper-köp ')).length;sellCount=Number.isFinite(x.sellCount)?x.sellCount:logs.filter(z=>String(z.a).startsWith('Paper-sälj ')).length;if(Number.isFinite(x.consecutiveLosses))consecutiveLosses=x.consecutiveLosses;if(x.dayKey===dayKey&&Number.isFinite(x.dayStartEquity)){dayStartEquity=x.dayStartEquity;dailyPaused=!!x.dailyPaused}}catch(e){console.warn('Kunde inte läsa sparat demotillstånd',e)}}
 function rollDay(){const d=new Date().toLocaleDateString('en-CA');if(d!==dayKey){dayKey=d;dayStartEquity=currentEquity();dailyPaused=false;consecutiveLosses=0;log('Ny handelsdag','Riskräknare återställd')}}
@@ -50,14 +50,14 @@ function riskCheck(t){
 function buy(t,automatic=false){
  const why=riskCheck(t);if(why){if(!automatic)message('Riskkontrollen stoppade köpet: '+why);return false}
  const size=Math.min(balance*.08,MAX_TRADE_USD,balance);if(size<1)return false;
- balance-=size;buyCount++;positions.push({address:t.address,symbol:t.symbol,entry:t.price,lastPrice:t.price,size,peak:t.price,opened:Date.now()});
+ const quantity=size/t.price;if(!Number.isFinite(quantity)||quantity<=0){if(!automatic)message('Köpet stoppades: kunde inte räkna ut tokenmängden.');return false;}\n balance-=size;buyCount++;positions.push({address:t.address,symbol:t.symbol,entry:t.price,lastPrice:t.price,size,invested:size,quantity,peak:t.price,opened:Date.now()});
  log('Paper-köp '+t.symbol,money(size)+' · totalpoäng '+t.score+' · hype '+t.hype+'/100');
  render();return true;
 }
 function sell(address,reason='Manuell försäljning'){
  const i=positions.findIndex(p=>p.address===address);if(i<0)return;
  const p=positions[i],t=tokens.find(x=>x.address===address),price=t?.price||p.lastPrice||p.entry;
- const gross=p.size*(price/p.entry),proceeds=Math.max(0,gross-gross*FEE_RATE),pnl=proceeds-p.size;
+ const invested=Number(p.invested??p.size),quantity=Number(p.quantity??(invested/p.entry)),gross=quantity*price,proceeds=Math.max(0,gross-gross*FEE_RATE),pnl=proceeds-invested;
  balance+=proceeds;realized+=pnl;sellCount++;positions.splice(i,1);consecutiveLosses=pnl<0?consecutiveLosses+1:0;
  log('Paper-sälj '+p.symbol,reason+' · netto '+money(pnl),pnl>=0?'positive':'negative');
  if(consecutiveLosses>=3||currentEquity()<=dayStartEquity*(1-MAX_DAILY_LOSS)){dailyPaused=true;log('Risk Manager · paus','Förlustgräns uppnådd','negative')}
@@ -70,7 +70,7 @@ function autoTrade(){rollDay();if(currentEquity()<=dayStartEquity*(1-MAX_DAILY_L
 function render(){
  saveState();$('balance').textContent=money(balance);$('pnl').textContent=money(realized);$('pnl').className=realized>=0?'positive':'negative';$('count').textContent=positions.length;$('n').textContent=tokens.length;if($('buyCount'))$('buyCount').textContent=buyCount;if($('sellCount'))$('sellCount').textContent=sellCount;
  $('tokens').innerHTML=tokens.length?tokens.slice(0,50).map(t=>'<tr><td><b>'+esc(t.symbol)+'</b><span class="sub">'+esc(t.name)+' · '+esc(t.address.slice(0,5)+'…'+t.address.slice(-5))+'</span></td><td>'+money(t.price)+'</td><td>'+money(t.liquidity)+'</td><td>'+money(t.volume)+'</td><td class="'+(t.change24h>=0?'positive':'negative')+'">'+(t.change24h==null?'—':t.change24h.toFixed(1)+'%')+'</td><td>'+t.score+'/100</td><td>'+t.hype+'/100 · '+esc(t.signal)+'</td><td>'+(positions.some(p=>p.address===t.address)?'Öppen':'<button class="tablebtn" data-buy="'+esc(t.address)+'">Paper köp</button>')+'</td></tr>').join(''):'<tr><td colspan="8">Inga tokens hittades ännu.</td></tr>';
- $('positions').innerHTML=positions.length?positions.map(p=>{const t=tokens.find(x=>x.address===p.address),price=t?.price||p.lastPrice||p.entry,pnl=p.size*(price/p.entry-1);return '<tr><td>'+esc(p.symbol)+'</td><td>'+money(p.entry)+'</td><td>'+money(price)+'</td><td class="'+(pnl>=0?'positive':'negative')+'">'+money(pnl)+'</td><td><button class="tablebtn secondary" data-sell="'+esc(p.address)+'">Sälj</button></td></tr>'}).join(''):'<tr><td colspan="5">Inga öppna positioner.</td></tr>';
+ $('positions').innerHTML=positions.length?positions.map(p=>{const t=tokens.find(x=>x.address===p.address),price=t?.price||p.lastPrice||p.entry,invested=Number(p.invested??p.size),quantity=Number(p.quantity??(invested/p.entry)),pnl=quantity*price-invested;return '<tr><td>'+esc(p.symbol)+'</td><td>'+money(p.entry)+'</td><td>'+money(price)+'</td><td>'+money(invested)+'</td><td class="'+(pnl>=0?'positive':'negative')+'">'+money(pnl)+'</td><td><button class="tablebtn secondary" data-sell="'+esc(p.address)+'">Sälj</button></td></tr>'}).join(''):'<tr><td colspan="5">Inga öppna positioner.</td></tr>';
 }
 async function scan(){
  if(busy)return;busy=true;$('scan').disabled=true;
