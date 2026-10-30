@@ -50,7 +50,8 @@ function riskCheck(t){
 function buy(t,automatic=false){
  const why=riskCheck(t);if(why){if(!automatic)message('Riskkontrollen stoppade köpet: '+why);return false}
  const size=Math.min(balance*.08,MAX_TRADE_USD,balance);if(size<1)return false;
- const quantity=size/t.price;if(!Number.isFinite(quantity)||quantity<=0){if(!automatic)message('Köpet stoppades: kunde inte räkna ut tokenmängden.');return false;}\n balance-=size;buyCount++;positions.push({address:t.address,symbol:t.symbol,entry:t.price,lastPrice:t.price,size,invested:size,quantity,peak:t.price,opened:Date.now()});
+ const quantity=size/t.price;if(!Number.isFinite(quantity)||quantity<=0){if(!automatic)message('Köpet stoppades: kunde inte räkna ut tokenmängden.');return false;}
+balance-=size;buyCount++;positions.push({address:t.address,symbol:t.symbol,entry:t.price,lastPrice:t.price,size,invested:size,quantity,peak:t.price,opened:Date.now()});
  log('Paper-köp '+t.symbol,money(size)+' · totalpoäng '+t.score+' · hype '+t.hype+'/100');
  render();return true;
 }
