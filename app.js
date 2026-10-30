@@ -100,7 +100,8 @@ async function scan(){
   if(running)autoTrade();
   agent('Risk',dailyPaused?'Pausad av riskregler':'Riskkontroll aktiv');
   agent('Executor','Endast simulerade order · '+positions.length+' öppna');
-  const qualified=tokens.filter(t=>t.score>=MIN_SCORE&&t.liquidity>=MIN_LIQUIDITY&&t.volume>=MIN_VOLUME).length;\n  message('Skanningen klar: '+tokens.length+' tokenpar analyserade · '+qualified+' klarar köpkraven. Autopiloten avvaktar om ingen kandidat klarar riskkontrollen.');
+  const qualified=tokens.filter(t=>t.score>=MIN_SCORE&&t.liquidity>=MIN_LIQUIDITY&&t.volume>=MIN_VOLUME).length;
+  message('Skanningen klar: '+tokens.length+' tokenpar analyserade · '+qualified+' klarar köpkraven. Autopiloten avvaktar om ingen kandidat klarar riskkontrollen.');
   render();
  }catch(e){message('Kunde inte hämta data: '+e.message+'. API kan vara begränsat eller tillfälligt nere.');log('Skanningsfel',e.message,'negative');agent('Scanner','Fel vid datahämtning')}
  finally{busy=false;$('scan').disabled=false}
